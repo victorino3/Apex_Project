@@ -1,16 +1,16 @@
 public with sharing class CTLocationTracingController {
-    public List<Location_Tracing__c> getVisitor(String locationId){
+    public static List<Location_Tracing__c> getVisitor(String locationId){
         return [SELECT Name, IsDeleted, Id, Visit_Date__c,Location__c,Person__r.Health_Status__c,Person__r.Token__c
                 FROM Location_Tracing__c WHERE Id =: locationId
                 WITH SECURITY_ENFORCED
                 ORDER BY Visit_Date__c DESC
                ];   
     }
-    public List<Location_Tracing__c> getLocationsByPersonIds(Set<Id> personIds){
+    public static List<Location_Tracing__c> getLocationsByPersonIds(Set<Id> personIds){
         return [SELECT Id,Location__c, Person__c
         FROM Location_Tracing__c WHERE Person__c IN: personIds AND Visit_Date__c  = LAST_N_Days:10 WITH SECURITY_ENFORCED];
     }
-    public List<Location_Tracing__c> getLocationByLocationIds(Set<Id> locationId){
+    public static List<Location_Tracing__c> getLocationByLocationIds(Set<Id> locationId){
         String state='Green';
         return [SELECT Id,Person__c,Location__c
                 FROM Location_Tracing__c 
@@ -18,7 +18,7 @@ public with sharing class CTLocationTracingController {
                 WITH SECURITY_ENFORCED];
     }
 
-    public List<Location_Tracing__c> checkDuplicates(List<Location_Tracing__c> locationTraces){
+    public static List<Location_Tracing__c> checkDuplicates(List<Location_Tracing__c> locationTraces){
        Set<Id> locationIds = new Set<Id>();
        Set<Id> personIds = new Set<Id>();
        for (Location_Tracing__c index : locationTraces) {
@@ -32,15 +32,17 @@ public with sharing class CTLocationTracingController {
                                                     ];
        Map<Id,Set<Id>> mapOfExistingRecords = new Map<Id,Set<Id>>();
        List <Location_Tracing__c> duplicate = new List<Location_Tracing__c>();
-       if(mapOfExistingRecords != null && mapOfExistingRecords.size() > 0){
-        for (Location_Tracing__c index : locationTraces) {
-            if(mapOfExistingRecords.containsKey(index.Location__c)) {
-                //add indice into Map
+       if(existingRecords != null && existingRecords.size() > 0){
+        
+        for (Location_Tracing__c index : existingRecords) {
+            if(!mapOfExistingRecords.containsKey(index.Location__c)) {
+                //add indice into Map (Key)
                 mapOfExistingRecords.put(index.Location__c, new Set<Id>());
             }
-            //add person in Set
+            //add person in Set (Value)
             mapOfExistingRecords.get(index.Location__c).add(index.Person__c);
         }
+        
         for (Location_Tracing__c value : locationTraces) {
             if (mapOfExistingRecords.containsKey(value.Location__c) &&
                 mapOfExistingRecords.get(value.Location__c).contains(value.Person__c)) {
